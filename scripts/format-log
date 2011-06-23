@@ -1,0 +1,36 @@
+#!/usr/bin/python
+
+import sys
+import json
+import datetime
+
+formats = {
+    'log':
+"""
+Class: %(class)s Instance: %(instance)s
+Time: %(fmttime)s Host: %(hostname)s
+From: %(zsig)s <%(sender)s>
+
+%(body)s
+""",
+}
+
+
+if __name__ == "__main__":
+    disp_format = "log"
+    if len(sys.argv) == 2:
+        disp_format = sys.argv[1]
+    if disp_format not in formats:
+        print >>sys.stderr, ("Format %s not recognized" % (disp_format, ))
+        sys.exit(1)
+    for line in sys.stdin:
+        try:
+            record = json.loads(line)
+            seconds = record['time']['$date'] / 1000
+            record['fmttime'] = datetime.datetime.fromtimestamp(seconds)
+            print formats[disp_format] % record
+        except ValueError, e:
+            if str(e) == "No JSON object could be decoded":
+                print >>sys.stderr, "Invalid row: '%s'" % (line.strip(), )
+            else:
+                raise
