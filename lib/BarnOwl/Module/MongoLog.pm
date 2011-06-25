@@ -66,7 +66,7 @@ sub handle_message {
     # I don't care about ZAUTH_FAILED vs. ZAUTH_NO, so I'm just going
     # to collapse them
     if (exists($m->{'auth'})) {
-        $m->{'auth'} = to_boolean($m->{'auth'} == 'YES');
+        $m->{'auth'} = to_boolean($m->{'auth'} eq 'YES');
     }
 
     if ($m->{'login'} eq 'none') {
