@@ -21,16 +21,69 @@ sub fail {
     die("MongoLog Error: $msg\n");
 }
 
-sub config {
+sub initialize {
+    BarnOwl::new_variable_bool("mongolog:enable", {
+        default => 0,
+        summary => "turn MongoDB logging on or off",
+        description => "If this is set, messages are logged to MongoDB " .
+            "(with the MongoDB instance determined by the mongolog:host, " .
+            "mongolog:database, mongolog:username, and mongolog:password " .
+            "settings)."
+    });
+
+    BarnOwl::new_variable_string("mongolog:host", {
+        default => "localhost:41803",
+        summary => "Host (and port) to connect to MongoDB on"
+    });
+
+    BarnOwl::new_variable_string("mongolog:database", {
+        default => "barnowl",
+        summary => "Database name to attempt to connect to MongoDB with"
+    });
+
+    BarnOwl::new_variable_string("mongolog:username", {
+        default => undef,
+        summary => "Username to attempt to connect to MongoDB with"
+    });
+
+    BarnOwl::new_variable_string("mongolog:password", {
+        default => undef,
+        summary => "Password to attempt to connect to MongoDB with"
+    });
+
+    BarnOwl::new_command("mongolog:connect" => \&mongolog_connect, {
+        summary => "Connect to MongoDB for logging",
+        usage => "mongolog:connect"
+    });
+}
+
+sub mongolog_connect {
+    my $quiet = shift;
     my ($conn, $db);
+    my $host = BarnOwl::getvar("mongolog:host");
+    my $username = BarnOwl::getvar("mongolog:username");
+    my $password = BarnOwl::getvar("mongolog:password");
+    my $database = BarnOwl::getvar("mongolog:database");
     eval {
-        $conn = MongoDB::Connection->new('host' => 'mongodb://localhost:41803');
+        if(!$quiet)
+        {
+            BarnOwl::admin_message('MongoLog', "Attempting to connect to $host/$database/$username");
+        }
+        $conn = MongoDB::Connection->new(
+            'host' => $host,
+            username => $username,
+            password => $password,
+            db_name => $database,
+        );
     };
     if ($@) {
-        fail("Unable to connect: $@");
+        if(!$quiet)
+        {
+            fail("Unable to connect: $@");
+        }
     }
 
-    $db = $conn->barnowl;
+    $db = $conn->get_database($database);
     $messages = $db->messages;
 }
 
@@ -41,7 +94,16 @@ sub to_boolean {
 
 sub handle_message {
     my $m = shift;
+    if (BarnOwl::getvar("mongolog:enable") eq "off") {
+        return;
+    }
     if (!$messages) {
+        # Try to connect
+        mongolog_connect(1);
+    }
+    if (!$messages) {
+        # If we still aren't connected, report that
+        BarnOwl::message("MongoLog: not connected");
         return;
     }
 
@@ -80,7 +142,7 @@ sub handle_message {
     $messages->insert($m);
 }
 
-config;
+initialize;
 
 eval {
     $BarnOwl::Hooks::receiveMessage->add('BarnOwl::Module::MongoLog::handle_message');
