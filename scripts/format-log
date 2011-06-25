@@ -1,18 +1,42 @@
 #!/usr/bin/python
 
-import sys
-import json
+import collections
 import datetime
+import json
+import re
+import sys
+
+def template_formatter(template):
+    def do_format(record):
+        return template % collections.defaultdict(str, record)
+    return do_format
+
+def format_style_default(record):
+    record = collections.defaultdict(str, record)
+    template = ("%(class)s / %(instance)s / %(fmtauth)s: %(sender)s"
+        + "  %(fmttime)s (%(zsig)s) / %(hostname)s" + "\n"
+        + "    %(indented_body)s"
+    )
+    body = record['body']
+    # replace newline followed by anything with
+    # newline plus four spaces and that thing.
+    body = re.sub(r'\n(.)', r'\n    \1', body)
+    # Trim trailing newlines.
+    body = re.sub(r'\n*$', '', body)
+    record['fmtauth'] = record['auth'] and "AUTH" or "UNAUTH"
+    record['indented_body'] = body
+    return template % record
 
 formats = {
-    'log':
+    'log': template_formatter(
 """
 Class: %(class)s Instance: %(instance)s
 Time: %(fmttime)s Host: %(hostname)s
 From: %(zsig)s <%(sender)s>
 
 %(body)s
-""",
+"""),
+    'style:default': format_style_default,
 }
 
 
@@ -28,7 +52,7 @@ if __name__ == "__main__":
             record = json.loads(line)
             seconds = record['time']['$date'] / 1000
             record['fmttime'] = datetime.datetime.fromtimestamp(seconds)
-            print formats[disp_format] % record
+            print formats[disp_format](record)
         except ValueError, e:
             if str(e) == "No JSON object could be decoded":
                 print >>sys.stderr, "Invalid row: '%s'" % (line.strip(), )
