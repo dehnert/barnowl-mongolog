@@ -12,13 +12,43 @@ use boolean;
 use DateTime;
 use MongoDB;
 
+use JSON;
+
 our $messages = undef;
+
+our $conffile = BarnOwl::get_config_dir() . "/mongolog.json";
 
 sub fail {
     my $msg = shift;
     $messages = undef;
     BarnOwl::admin_message('MongoLog Error', $msg);
     die("MongoLog Error: $msg\n");
+}
+
+sub read_config {
+    my $conffile = shift;
+    my $cfg = {};
+    if (open(my $fh, "<", "$conffile")) {
+        my $raw_cfg = do {local $/; <$fh>};
+        close($fh);
+
+        eval { $cfg = from_json($raw_cfg); };
+        if ($@) { BarnOwl::admin_message('ReadConfig', "Unable to parse $conffile: $@"); }
+    } else {
+        BarnOwl::message("Config file $conffile could not be opened.");
+    }
+    return $cfg;
+}
+
+sub load_config {
+    my $prefix = shift;
+    my $cfg = read_config($conffile);
+    my $appconf = $cfg->{$prefix};
+    my ($key, $value);
+    while (($key, $value) = each(%$appconf))
+    {
+        BarnOwl::set($prefix . ":" . $key, $value);
+    }
 }
 
 sub initialize {
@@ -55,6 +85,8 @@ sub initialize {
         summary => "Connect to MongoDB for logging",
         usage => "mongolog:connect"
     });
+
+    load_config("mongolog");
 }
 
 sub mongolog_connect {
