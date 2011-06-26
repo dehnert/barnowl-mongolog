@@ -1,0 +1,86 @@
+#!/usr/bin/python
+
+from optparse import OptionParser
+from bson import json_util
+import json
+import os
+import pymongo
+import sys
+
+def read_config(filename):
+    fd = open(os.path.expanduser(filename), 'r')
+    config = json.load(fd)
+    return config['mongolog']
+
+def db_connect(config):
+    hostname = "localhost:41803"
+    if 'host' in config:
+        hostname = config['host']
+    database = "barnowl"
+    if 'database' in config:
+        database = config['database']
+    username = None
+    if 'username' in config:
+        username = config['username']
+    password = None
+    if 'password' in config:
+        password = config['password']
+        
+    connection = pymongo.Connection(hostname)
+    database = connection[database]
+    if username is not None and password is not None:
+        database.authenticate(username, password)
+    return database
+
+def process(options):
+    database = db_connect(read_config("~/.owl/mongolog.json"))
+    messages = database.messages
+    query = {}
+    if options.mtype:
+        query['type'] = { "$in" : options.mtype }
+    if options.mclass:
+        query['class'] = { "$in" : options.mclass }
+    if options.instance:
+        query['instance'] = { "$in" : options.instance }
+    if options.sender:
+        query['sender'] = { "$in" : options.sender }
+    if options.bodyregex:
+        query['body'] = { "$regex" : options.bodyregex }
+    for message in messages.find(query, limit=options.limit):
+        json.dump(message, sys.stdout, default=json_util.default)
+        print ""
+
+def parse_args(argv):
+    parser = OptionParser()
+    parser.add_option("-t", "--type", dest="mtype", action="append",
+        help="Include only type TYPE messages", metavar="TYPE")
+    parser.add_option("-c", "--class", dest="mclass", action="append",
+        help="Include only class CLASS messages. Implies --type=zephyr.",
+        metavar="CLASS")
+    parser.add_option("-i", "--instance", action="append",
+        help="Include only instance INSTANCE messages. Implies --type=zephyr.",
+        metavar="INSTANCE")
+    parser.add_option("-s", "--sender", action="append",
+        help="Include only sender SENDER messages. Remember that the sender is something@REALM, not just something, for zephyrs.",
+        metavar="SENDER")
+    parser.add_option("-b", "--body", dest="bodyregex",
+        help="Include only messages whose body matches REGEX.",
+        metavar="REGEX")
+    parser.add_option("-l", "--limit", type="int", default=0,
+        help="Include only LIMIT messages.",
+        metavar="LIMIT")
+    (options, args) = parser.parse_args()
+    if options.mclass or options.instance:
+        if options.mtype == ["zephyr"]:
+            pass
+        elif options.mtype is None:
+            options.mtype = ["zephyr"]
+        else:
+            print >>sys.stderr, "Error: type=zephyr (and no other types) is implied by other options."
+            sys.exit(1)
+    return (options, args)
+
+
+if __name__ == "__main__":
+    (options, args) = parse_args(sys.argv)
+    process(options)
