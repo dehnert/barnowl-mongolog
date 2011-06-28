@@ -1,0 +1,6 @@
+#!/bin/bash
+
+installpath=$(dirname $(readlink -f "$0"))
+subprog="$1"; shift
+export PATH="$PATH:$installpath"
+exec mongolog-"$subprog" "$@"

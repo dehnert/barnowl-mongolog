@@ -20,8 +20,10 @@ Installing
 To install the module, you need to symlink the reposity in to
 ``~/.owl/modules/MongoLog/`` (so the path to the module source file will be
 ``~/.owl/modules/MongoLog/lib/BarnOwl/Module/MongoLog.pm``). You may also want
-add ``scripts`` to your path, or symlink ``scripts/filter-log`` and
-``scripts/format-log`` into a directory in your path.
+symlink ``scripts/mongolog`` into your path. ``mongolog foo`` calls the
+appropriate ``mongolog-foo`` command in the ``scripts`` directory, similarly
+to how ``git`` operates. To add new ``mongolog`` subcommands, you can either
+add to the ``scripts`` directory or place them anywhere in your path.
 
 Configuring
 -----------
@@ -48,4 +50,4 @@ For example, one valid ``~/.owl/mongolog.json`` would be::
     }
 
 
-If you wish to use ``scripts/filter-log``, you will need to create ``~/.owl/mongolog.json``.
+If you wish to use ``scripts/mongolog-filter``, you will need to create ``~/.owl/mongolog.json``.
