@@ -21,7 +21,12 @@ def process(options):
         query['sender'] = { "$in" : options.sender }
     if options.bodyregex:
         query['body'] = { "$regex" : options.bodyregex }
-    for message in messages.find(query, limit=options.limit):
+    results = messages.find(query)
+    results = results.sort("time", pymongo.ASCENDING)
+    if options.limit > 0:
+        length = results.count()
+        results = results.skip(length-options.limit).limit(options.limit)
+    for message in results:
         json.dump(message, sys.stdout, default=json_util.default)
         print ""
 
