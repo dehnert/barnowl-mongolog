@@ -51,3 +51,35 @@ For example, one valid ``~/.owl/mongolog.json`` would be::
 
 
 If you wish to use ``scripts/mongolog-filter``, you will need to create ``~/.owl/mongolog.json``.
+
+``mongolog`` subcommands
+------------------------
+
+``filter``
+  ``filter`` retrieves log entries from the database and dumps them as JSON to
+  ``stdout``. It takes various options to limit what gets displayed.
+``format``
+  ``format`` takes JSON documents on ``stdin``, and formats them according to
+  one of two predefined formats --- ``log``, which looks like a normal BarnOwl
+  log entry; and ``style:default``, which looks somewhat similar to the default
+  BarnOwl style. To select which style, either pass it as the first argument on
+  the commandline, or define the ``default_format`` key in your
+  ``~/.owl/mongolog.json``.
+``latest``
+  ``latest`` just pipes ``filter`` into ``format`` for you. ``filter`` is run
+  with ``--limit 20`` and any arguments that you provide on the commandline of
+  ``latest``. ``format`` will be run with no arguments. If you prefer
+  ``style:default``, this means you may want to set your ``default_format``.
+
+Tuning
+------
+
+You may find that running ``mongolog filter`` is a bit slow. I found adding
+indices to improve matters substantially::
+
+    db.messages.ensureIndex({"time": 1})
+    db.messages.ensureIndex({"class": 1})
+
+Even after, it was a little on the slow side, but the indices made it better
+--- times dropped from about two seconds to about 3/4 second in my highly
+unscientific test.
