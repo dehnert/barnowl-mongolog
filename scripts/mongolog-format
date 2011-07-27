@@ -41,9 +41,13 @@ From: %(zsig)s <%(sender)s>
 
 
 if __name__ == "__main__":
-    disp_format = "log"
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 1:
+        disp_format = "log"
+    elif len(sys.argv) == 2:
         disp_format = sys.argv[1]
+    else:
+        print >>sys.stderr, ("Expected zero or one arguments, got %d" % (len(sys.argv)-1, ))
+        sys.exit(1)
     if disp_format not in formats:
         print >>sys.stderr, ("Format %s not recognized" % (disp_format, ))
         sys.exit(1)
