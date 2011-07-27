@@ -1,0 +1,4 @@
+#!/bin/bash
+
+installpath=$(dirname $(readlink -f "$0"))
+$installpath/mongolog-filter --limit 20 "$@" | $installpath/mongolog-format
