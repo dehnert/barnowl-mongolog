@@ -3,6 +3,7 @@
 import collections
 import datetime
 import json
+import mongolog
 import re
 import sys
 
@@ -43,6 +44,12 @@ From: %(zsig)s <%(sender)s>
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         disp_format = "log"
+        try:
+            config = mongolog.read_config()
+            if 'default_format' in config:
+                disp_format = config['default_format']
+        except IOError, e:
+            pass
     elif len(sys.argv) == 2:
         disp_format = sys.argv[1]
     else:
