@@ -17,6 +17,10 @@ def process(options):
         query['class'] = { "$in" : options.mclass }
     if options.instance:
         query['instance'] = { "$in" : options.instance }
+    if options.rclass:
+        query['class'] = { "$regex" : options.rclass }
+    if options.rinstance:
+        query['instance'] = { "$regex" : options.rinstance }
     if options.sender:
         query['sender'] = { "$in" : options.sender }
     if options.bodyregex:
@@ -40,6 +44,12 @@ def parse_args(argv):
     parser.add_option("-i", "--instance", action="append",
         help="Include only instance INSTANCE messages. Implies --type=zephyr.",
         metavar="INSTANCE")
+    parser.add_option("--rclass", dest="rclass",
+        help="Include only class REGEX messages.",
+        metavar="REGEX")
+    parser.add_option("--rinstance", dest="rinstance",
+        help="Include only instance REGEX messages.",
+        metavar="REGEX")
     parser.add_option("-s", "--sender", action="append",
         help="Include only sender SENDER messages. Remember that the sender is something@REALM, not just something, for zephyrs.",
         metavar="SENDER")
@@ -58,6 +68,9 @@ def parse_args(argv):
         else:
             print >>sys.stderr, "Error: type=zephyr (and no other types) is implied by other options."
             sys.exit(1)
+    if (options.mclass and options.rclass) or (options.instance and options.rinstance):
+        print >>sys.stderr, "Error: --class or --instance mutually exclusive with --rclass or --rinstance"
+        sys.exit(1)
     return (options, args)
 
 
