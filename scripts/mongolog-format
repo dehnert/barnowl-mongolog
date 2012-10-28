@@ -38,6 +38,7 @@ From: %(zsig)s <%(sender)s>
 %(body)s
 """),
     'style:default': format_style_default,
+    'class-sender': template_formatter("%(class)s\t%(sender)s"),
 }
 
 
