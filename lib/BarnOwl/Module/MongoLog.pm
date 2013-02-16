@@ -18,6 +18,8 @@ our $messages = undef;
 
 our $conffile = BarnOwl::get_config_dir() . "/mongolog.json";
 
+our @barnowl_variables = qw(host database username password);
+
 sub fail {
     my $msg = shift;
     $messages = undef;
@@ -47,7 +49,9 @@ sub load_config {
     my ($key, $value);
     while (($key, $value) = each(%$appconf))
     {
-        BarnOwl::set($prefix . ":" . $key, $value);
+        if($key ~~ @barnowl_variables) {
+            BarnOwl::set($prefix . ":" . $key, $value);
+        }
     }
 }
 
