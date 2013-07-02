@@ -1,0 +1,57 @@
+#!/usr/bin/python
+
+from optparse import OptionParser
+import datetime
+import json
+import sys
+import zephyr
+
+def parse_args(argv):
+    parser = OptionParser()
+    parser.add_option("-c", "--class", dest="mclass", default=False,
+        help="Force the class to CLASS when replaying",
+        metavar="CLASS")
+    parser.add_option("-i", "--instance", dest="minstance", default=False,
+        help="Force the instance to INSTANCE when replaying",
+        metavar="INSTANCE")
+    parser.add_option("-r", "--recipient", dest="mrecipient", default=False,
+        help="Force the recipient to RECIPIENT when replaying",
+        metavar="RECIPIENT")
+    (options, args) = parser.parse_args()
+    return (options, args)
+
+def replay_message(options, record):
+    mclass = options.mclass or record['class']
+    minstance = options.minstance or record['instance']
+    mrecipient = options.mrecipient or record['recipient']
+
+    z = zephyr.ZNotice()
+    z.cls = mclass
+    z.instance = minstance
+    z.recipient = mrecipient
+    z.sender = record['sender']
+    z.opcode = "auto"
+    z.fields = [
+        "replay: original at %s" % (record['fmttime'], ),
+        record['body'],
+    ]
+
+    z.send()
+
+def replay(options, msgs):
+    zephyr.init()
+    for line in sys.stdin:
+        try:
+            record = json.loads(line)
+            seconds = record['time']['$date'] / 1000
+            record['fmttime'] = datetime.datetime.fromtimestamp(seconds)
+            replay_message(options, record)
+        except ValueError, e:
+            if str(e) == "No JSON object could be decoded":
+                print >>sys.stderr, "Invalid row: '%s'" % (line.strip(), )
+            else:
+                raise
+
+if __name__ == "__main__":
+    (options, args) = parse_args(sys.argv)
+    replay(options, sys.stdin)
